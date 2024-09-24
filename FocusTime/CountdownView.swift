@@ -20,9 +20,13 @@ class CountdownViewModel {
             }
     }
     
-    func pause() {
-        runningTimer?.cancel()
-        runningTimer = nil
+    func playPause() {
+        self.isRunning ? self.pause() : self.start()
+    }
+    
+    func reset() {
+        self.pause()
+        self.secondsElapsed = 0
     }
     
     var isRunning: Bool {
@@ -35,6 +39,11 @@ class CountdownViewModel {
     
     var fractionRemaining: Double {
         Double(self.timeRemaining.components.seconds) / Double(self.timerLength.components.seconds)
+    }
+    
+    private func pause() {
+        runningTimer?.cancel()
+        runningTimer = nil
     }
 }
 
@@ -52,34 +61,48 @@ struct CountdownView: View {
                 .padding(72)
                 .background {
                     CountdownCircle()
-                        .environment(countdown)
                 }
             
             HStack {
-                Button {
-                    if countdown.isRunning {
-                        countdown.pause()
-                    }
-                    else {
-                        countdown.start()
-                    }
-                } label: {
-                    Label(
-                        countdown.isRunning ? "Pause" : "Play",
-                        systemImage: countdown.isRunning ? "pause" : "play"
-                    )
-                    .labelStyle(.iconOnly)
-                    .font(.title)
-                    .fontWeight(.bold)
-                }
-                .contentTransition(.symbolEffect(.replace))
+                PauseButton()
+                ResetButton()
             }
-            .buttonStyle(.borderless)
+//            .labelStyle(.iconOnly)
+            .buttonStyle(.bordered)
         }
         .onAppear {
             countdown.start()
         }
+        .environment(countdown)
         .animation(.easeInOut, value: countdown.timeRemaining)
+    }
+}
+
+struct PauseButton: View {
+    @Environment(CountdownViewModel.self) var countdown
+    
+    var body: some View {
+        Button {
+            countdown.playPause()
+        } label: {
+            Label(
+                countdown.isRunning ? "Pause" : "Play",
+                systemImage: countdown.isRunning ? "pause" : "play"
+            )
+        }
+        .contentTransition(.symbolEffect(.replace))
+    }
+}
+
+struct ResetButton: View {
+    @Environment(CountdownViewModel.self) var countdown
+    
+    var body: some View {
+        Button {
+            countdown.reset()
+        } label: {
+            Label("Reset", systemImage: "chevron.left.2")
+        }
     }
 }
 
