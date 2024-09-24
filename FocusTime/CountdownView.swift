@@ -1,11 +1,16 @@
 import SwiftUI
 import Combine
+import UserNotifications
+
+// TODO: store the starting Date of the timer, and update it when app is opened
 
 @MainActor @Observable
 class CountdownViewModel {
     private let timerLength: Duration
-    private var runningTimer: AnyCancellable?
+    private let notifications: Notifications = .init()
+    private var notificationID: String? = nil
     
+    private var runningTimer: AnyCancellable?
     private var secondsElapsed: Int = 0
 
     init(_ timerLength: Duration) {
@@ -13,6 +18,9 @@ class CountdownViewModel {
     }
     
     func start() {
+        notifications.requestAuthorization()
+        self.notificationID = notifications.schedule(in: self.timeRemaining)
+        
         runningTimer = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
             .sink { _ in
@@ -27,6 +35,11 @@ class CountdownViewModel {
     func reset() {
         self.pause()
         self.secondsElapsed = 0
+        
+        if let id = self.notificationID {
+            notifications.cancel(with: id)
+            self.notificationID = nil
+        }
     }
     
     var isRunning: Bool {
@@ -44,11 +57,16 @@ class CountdownViewModel {
     private func pause() {
         runningTimer?.cancel()
         runningTimer = nil
+        
+        if let id = self.notificationID {
+            notifications.cancel(with: id)
+            self.notificationID = nil
+        }
     }
 }
 
 struct CountdownView: View {
-    @State var countdown: CountdownViewModel = .init(.seconds(60))
+    @State var countdown: CountdownViewModel = .init(.seconds(10))
     @Namespace var namespace
     
     var body: some View {
